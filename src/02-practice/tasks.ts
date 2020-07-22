@@ -28,7 +28,8 @@ import {
 	catchError,
 	delay,
 	concatMap,
-	withLatestFrom
+	withLatestFrom,
+	startWith
 } from "rxjs/operators";
 import {
 	fromFetch
@@ -42,7 +43,7 @@ import {
 } from './../03-utils';
 
 // Task 1. of
-// Реализуйте тело функции, которая принимает переменное количество параметров 
+// Реализуйте тело функции, которая принимает переменное количество параметров
 // и создает Observable, который выдает значения ее аргументов
 (function task1(...rest: any[]): void {
 	// const stream$ = of(...rest);
@@ -73,7 +74,7 @@ import {
 })();
 
 // Task 3 fromEvent
-// Реализуйте тело функции, которая принимает 
+// Реализуйте тело функции, которая принимает
 // id кнопки и создает Observable, который выдает значения времени клика по кнопке
 (function task3(buttonId: string): void {
 	const target = document.querySelector(`#${buttonId}`);
@@ -112,7 +113,7 @@ import {
 
 
 // Task 5. fromFetch()
-// Реализуйте функцию, которая создает Observable, который выдает имена пользователей. 
+// Реализуйте функцию, которая создает Observable, который выдает имена пользователей.
 // Используйте операторы: fromFetch('http://jsonplaceholder.typicode.com/users), filter(), switchMap(), map()
 (function task5() {
 	const stream$ = fromFetch('http://jsonplaceholder.typicode.com/users')
@@ -127,7 +128,7 @@ import {
 })();
 
 // Task 6. ajax()
-// Реализуйте функцию, которая создает Observable, который выдает имена ползователей. 
+// Реализуйте функцию, которая создает Observable, который выдает имена ползователей.
 // Используйте операторы: ajax('http://jsonplaceholder.typicode.com/users'), switchMap(), map()
 (function task6() {
 	const source$ = ajax(`http://jsonplaceholder.typicode.com/users`);
@@ -142,7 +143,7 @@ import {
 })();
 
 // Task7. interval
-// Реализуйте функцию, которая создает Observable, который запрашивает и выдает имена ползователей каждые 5с 
+// Реализуйте функцию, которая создает Observable, который запрашивает и выдает имена ползователей каждые 5с
 // Используйте операторы: ajax('http://jsonplaceholder.typicode.com/users'), switchMap(), map()
 (function task7() {
 	const stream$ = interval(5000).pipe(
@@ -160,19 +161,26 @@ import {
 })();
 
 // Task 8. from(), timer(), zip()
-// Реализуйте функцию, которая создает Observable, который выдает элементы массива каждые 2с 
+// Реализуйте функцию, которая создает Observable, который выдает элементы массива каждые 2с
 // Создайте поток на основе массива items, используя from()
 // Создайте поток, который будет выдавать значение каждые 2с, используя timer()
 // Объедините эти потоки, используя zip
 (function task8() {
 	const items = [1, 2, 3, 4, 5];
-	// const stream$ = 
+	const initialDelay: number | Date = 1000;
+	const period: number = 2000;
+
+	const stream1$ = from(items);
+	const stream2$ = timer(initialDelay, period);
+	const stream$ = zip(stream1$,stream2$).pipe(
+		switchMap(arr => of(arr[0]))
+		);
 
 	// run(stream$);
 })();
 
 // Task 9. range()
-// Реализуйте функцию, которая создает Observable, который выдает числа в диапазоне от 1 до 10 
+// Реализуйте функцию, которая создает Observable, который выдает числа в диапазоне от 1 до 10
 // через случайное количество времени в диапазоне от 1с до 5с
 // Используйте функцию randomDelay(), of(), concatMap(), delay()
 (function task9() {
@@ -181,8 +189,16 @@ import {
 		console.log(pause);
 		return pause;
 	}
+	const start = 1;  // default value is 0
+	const count = 10;
 
-	// const stream$ = 
+	const stream$ = range(start,count).pipe(
+		concatMap(num =>
+			of(num).pipe(
+				delay(randomDelay(1000,5000))
+			)
+		),
+	);
 
 	// run(stream$);
 })();
@@ -190,11 +206,11 @@ import {
 // Task 10. pairs()
 // Реализуйте функцию, которая создает Observable.
 // Пусть есть поток objAddressStream, который выдает объект и второй поток fieldsStream, который содержит перечень ключей объекта
-// Необходимо модифицировать поток так, чтобы он выдавал объект только с дынными ключей из 
-// второго потока. 
+// Необходимо модифицировать поток так, чтобы он выдавал объект только с дынными ключей из
+// второго потока.
 // Используйте pairs(), switchMap(), reduce(), filter(), withLatestFrom()
 (function task10() {
-	const objAddressStream = of ({
+	const objAddressStream = of({
 		country: 'Ukraine',
 		city: 'Kyiv',
 		index: '02130',
@@ -205,9 +221,22 @@ import {
 
 	const fieldsStream = from(['country', 'street', 'flat']);
 
-	// const stream$ = 
+	let resultObj = {};
 
-	// run(stream$); 
+	const stream$ = objAddressStream.pipe(
+			switchMap(res =>
+				pairs(res).pipe(
+					filter(response => response[0] === 'country' || response[0] === 'street' || response[0] === 'flat'),
+					reduce((resultObj, elem) => {
+						const el = {};
+						el[elem[0]] = elem[1];
+						return Object.assign(resultObj, el)}
+						, resultObj)
+			)
+		)
+	);
+
+	// run(stream$);
 })();
 
 // Task 11. EMPTY
@@ -218,9 +247,9 @@ import {
 (function task11() {
 	const items = [1, 2, 3, 4, 5];
 
-	// const stream$ = 
-
+	// const stream$ = EMPTY.pipe()
 	// run(stream$);
+
 })();
 
 
@@ -230,7 +259,7 @@ import {
 (function task11() {
 	const items = [1, 2, 3, 4, 5];
 
-	// const stream$ = 
+	// const stream$ =
 
 	// run(stream$);
 })();
@@ -241,18 +270,18 @@ import {
 (function task11() {
 	const items = [1, 2, 3, 4, 5];
 
-	// const stream$ = 
+	// const stream$ =
 
 	// run(stream$);
 })();
 
 // Task 14. bindCallback
-// Пусть есть некоторая функция doAsyncJob, которая выполняет асинхронную операцию и вызывает колбек, 
+// Пусть есть некоторая функция doAsyncJob, которая выполняет асинхронную операцию и вызывает колбек,
 // когда эта операция завершается.
 // Используя bindCallback, создайте функцию reactiveDoAsyncJob, вызовов которой создаст поток с передаваемым ей значением.
 (function task14() {
 	function doAsyncJob(data: any, callback: (data: any) => void) {
-		// imitation of some request 
+		// imitation of some request
 		setTimeout(() => {
 			callback(data)
 		}, 3000);
@@ -266,13 +295,13 @@ import {
 })();
 
 // Task 15. bindNodeCallback
-// Пусть есть некоторая функция doAsyncJob, которая выполняет асинхронную операцию и вызывает колбек в "формате ноды", 
+// Пусть есть некоторая функция doAsyncJob, которая выполняет асинхронную операцию и вызывает колбек в "формате ноды",
 // когда эта операция завершается.
 // Используя bindNodeCallback, создайте функцию reactiveDoAsyncJob, вызовов которой создаст поток,
 // который завершится ошибкой.
 (function task15() {
 	function doAsyncJob(data: any, callback: (error: any, data: any) => void) {
-		// imitation of some request 
+		// imitation of some request
 		setTimeout(() => {
 			callback('Error', data)
 		}, 3000);
@@ -297,7 +326,7 @@ import {
 	// getUsers().then(data => data.json()).then(addItem);
 
 
-	// const stream$ = 
+	// const stream$ =
 
 	// addItem("I don't want that request now");
 	// run(stream$);
@@ -306,7 +335,7 @@ import {
 
 
 // Task 17. generate
-// Реализуйте функцию, которая создает Observable, который будет выдавать в поток значения, 
+// Реализуйте функцию, которая создает Observable, который будет выдавать в поток значения,
 // хранящихся в свойстве sequence класса С
 (function task17() {
 	class C < T > {
@@ -328,7 +357,7 @@ import {
 
 	const sequence = new C < number > ().add(1).add(10).add(1000).add(10000);
 
-	// const stream$ = 
+	// const stream$ =
 
 	// run(stream$);
 })();
